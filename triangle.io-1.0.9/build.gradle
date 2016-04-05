@@ -1,2 +1,4 @@
 configurations.create("default")
 artifacts.add("default", file('triangle.io-1.0.9.jar'))
+dependencies {
+}

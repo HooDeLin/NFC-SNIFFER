@@ -1,5 +1,9 @@
 package com.cs3235.nfcsniffer;
 
+/**
+ * Created by mingxuan on 5/4/2016.
+ */
+
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -8,12 +12,18 @@ import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.nfc.NfcAdapter;
+
 
 public class MainScreen extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         setContentView(R.layout.activity_main_screen);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -26,6 +36,45 @@ public class MainScreen extends AppCompatActivity {
                         .setAction("Action", null).show();
             }
         });
+        NfcAdapter nfcAdapter = NfcAdapter.getDefaultAdapter(this);
+        boolean askingToEnableNfc = false;
+
+        if (nfcAdapter != null && !nfcAdapter.isEnabled())
+        {
+            askingToEnableNfc = true;
+
+            // Alert the user that NFC is off
+            new AlertDialog.Builder(this)
+                    .setTitle("NFC Sensor Turned Off")
+                    .setMessage("In order to use this application, the NFC sensor must be turned on. Do you wish to turn it on?")
+                    .setPositiveButton("Go to Settings", new DialogInterface.OnClickListener()
+                    {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i)
+                        {
+                            // Send the user to the settings page and hope they turn it on
+                            if (android.os.Build.VERSION.SDK_INT >= 16)
+                            {
+                                startActivity(new Intent(android.provider.Settings.ACTION_NFC_SETTINGS));
+                            }
+                            else
+                            {
+                                startActivity(new Intent(android.provider.Settings.ACTION_WIRELESS_SETTINGS));
+                            }
+                        }
+                    })
+                    .setNegativeButton("Do Nothing", new DialogInterface.OnClickListener()
+                    {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i)
+                        {
+                            // Do nothing
+                        }
+                    })
+                    .show();
+        }
+
+        startService(new Intent( MainScreen.this,Background.class));
     }
 
     @Override
