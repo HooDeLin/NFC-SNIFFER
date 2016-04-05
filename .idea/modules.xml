@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/NFCSNIFFER.iml" filepath="$PROJECT_DIR$/NFCSNIFFER.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/triangle.io-1.0.9/triangle.io-1.0.9.iml" filepath="$PROJECT_DIR$/triangle.io-1.0.9/triangle.io-1.0.9.iml" />
     </modules>
   </component>
 </project>
