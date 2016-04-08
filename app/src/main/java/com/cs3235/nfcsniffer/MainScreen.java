@@ -4,6 +4,8 @@ package com.cs3235.nfcsniffer;
  * Created by mingxuan on 5/4/2016.
  */
 
+import android.app.Activity;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -16,26 +18,40 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.nfc.NfcAdapter;
+import android.widget.Button;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import java.util.List;
+
+import io.triangle.Session;
+import io.triangle.reader.PaymentCard;
+import io.triangle.reader.ScanActivity;
 
 
-public class MainScreen extends AppCompatActivity {
+public class MainScreen extends Activity {
+
+
+    private boolean isResumed;
+    private static final int SCAN_REQUEST_CODE = 100;
+    private boolean hasRequestedScan;
+    TextView t;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_main_screen);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+
+                scanCard();
             }
         });
+
         NfcAdapter nfcAdapter = NfcAdapter.getDefaultAdapter(this);
         boolean askingToEnableNfc = false;
 
@@ -74,7 +90,7 @@ public class MainScreen extends AppCompatActivity {
                     .show();
         }
 
-        startService(new Intent( MainScreen.this,Background.class));
+        t = (TextView)findViewById(R.id.counter);
     }
 
     @Override
@@ -97,5 +113,81 @@ public class MainScreen extends AppCompatActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    private void scanCard()
+    {
+        Intent scanIntent = new Intent(this, io.triangle.reader.ScanActivity.class);
+
+        // We want the scanning to continue until a successful scan occurs or
+        // the user explicitly cancels
+        scanIntent.putExtra(ScanActivity.INTENT_EXTRA_RETRY_ON_ERROR, true);
+
+        // Kick off the scan activity
+        this.startActivityForResult(scanIntent, 100);
+
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data)
+    {
+
+        if (requestCode == SCAN_REQUEST_CODE)
+        {
+            // Track that this activity has already asked for a scan
+            this.hasRequestedScan = true;
+            Toast.makeText(MainScreen.this, resultCode+"", Toast.LENGTH_SHORT).show();
+            if (resultCode == RESULT_OK)
+            {
+                PaymentCard scannedCard = data.getParcelableExtra(ScanActivity.INTENT_EXTRA_PAYMENT_CARD);
+                List<String> errors = data.getStringArrayListExtra(ScanActivity.INTENT_EXTRA_SCAN_ERRORS);
+
+                // Handle the scan result
+                this.onScanResult(scannedCard, errors);
+
+            }
+            else if (resultCode == ScanActivity.RESULT_NO_NFC)
+            {
+                // This device does not have an NFC sensor
+                new AlertDialog.Builder(this)
+                        .setTitle("Device has no NFC Sensor")
+                        .setMessage("In order to scan a payment card, you must have a device with an NFC sensor.")
+                        .setPositiveButton("OK", null)
+                        .create()
+                        .show();
+            }
+            else if (resultCode == ScanActivity.RESULT_CANCELED)
+            {
+                // The scanning was cancelled by the user
+            }
+        }
+        else
+        {
+            // Let the parent handle this, we don't know what it is
+            super.onActivityResult(requestCode, resultCode, data);
+        }
+    }
+
+    private void onScanResult(PaymentCard cardInformation, List<String> errors)
+    {
+        // NOTE: The errors list would contain any errors the scanning may have yielded
+        //Toast.makeText(MainScreen.this, "good", Toast.LENGTH_SHORT).show();
+        if (cardInformation != null)
+        {
+            t.setText("Card: " + cardInformation.getCardPreferredName()+" \nName: "+cardInformation.getCardholderName()+" \nLast 4 digits: "+cardInformation.getLastFourDigits()
+            +"\nActivation date: "+cardInformation.getActivationDate()+"\nExpiry Date: "+cardInformation.getExpiryDate());
+//            // Remove any previous cards
+//            this.root.removeAllViews();
+//
+//            // Card was successfully read, create a new card view and add it to the layout so that the user can see the
+//            // card information
+//            CardView cardView = new CardView(this.root, cardInformation, this);
+//            LinearLayout.LayoutParams cardViewLayoutParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+//            cardViewLayoutParams.gravity = Gravity.CENTER_HORIZONTAL;
+//            this.root.addView(cardView, 0, cardViewLayoutParams);
+
+        } else {
+            t.setText("null");
+        }
     }
 }
