@@ -4,6 +4,9 @@ package com.cs3235.nfcsniffer;
  * Created by mingxuan on 5/4/2016.
  */
 
+import android.app.Activity;
+import android.app.PendingIntent;
+import android.content.IntentFilter;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -19,7 +22,7 @@ import android.nfc.NfcAdapter;
 
 
 public class MainScreen extends AppCompatActivity {
-
+    public NfcAdapter nfcAdapter;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -36,45 +39,75 @@ public class MainScreen extends AppCompatActivity {
                         .setAction("Action", null).show();
             }
         });
-        NfcAdapter nfcAdapter = NfcAdapter.getDefaultAdapter(this);
-        boolean askingToEnableNfc = false;
+        nfcAdapter = NfcAdapter.getDefaultAdapter(this);
 
-        if (nfcAdapter != null && !nfcAdapter.isEnabled())
-        {
-            askingToEnableNfc = true;
+        if (nfcAdapter != null && !nfcAdapter.isEnabled()) {
+            //we only sniff if nfc support is present
 
-            // Alert the user that NFC is off
-            new AlertDialog.Builder(this)
-                    .setTitle("NFC Sensor Turned Off")
-                    .setMessage("In order to use this application, the NFC sensor must be turned on. Do you wish to turn it on?")
-                    .setPositiveButton("Go to Settings", new DialogInterface.OnClickListener()
-                    {
-                        @Override
-                        public void onClick(DialogInterface dialogInterface, int i)
-                        {
-                            // Send the user to the settings page and hope they turn it on
-                            if (android.os.Build.VERSION.SDK_INT >= 16)
-                            {
-                                startActivity(new Intent(android.provider.Settings.ACTION_NFC_SETTINGS));
-                            }
-                            else
-                            {
-                                startActivity(new Intent(android.provider.Settings.ACTION_WIRELESS_SETTINGS));
-                            }
-                        }
-                    })
-                    .setNegativeButton("Do Nothing", new DialogInterface.OnClickListener()
-                    {
-                        @Override
-                        public void onClick(DialogInterface dialogInterface, int i)
-                        {
-                            // Do nothing
-                        }
-                    })
-                    .show();
+
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        /**
+         * It's important, that the activity is in the foreground (resumed). Otherwise
+         * an IllegalStateException is thrown.
+         */
+        setupForegroundDispatch(this, nfcAdapter);
+    }
+
+    @Override
+    protected void onPause() {
+        /**
+         * Call this before onPause, otherwise an IllegalArgumentException is thrown as well.
+         */
+        stopForegroundDispatch(this, nfcAdapter);
+
+        super.onPause();
+    }
+
+    protected void onNewIntent(Intent intent) {
+        /**
+         * This method gets called, when a new Intent gets associated with the current activity instance.
+         * Instead of creating a new activity, onNewIntent will be called. For more information have a look
+         * at the documentation.
+         *
+         * In our case this method gets called, when the user attaches a Tag to the device.
+         */
+        handleIntent(intent);
+    }
+
+    private void handleIntent(Intent intent) {
+        // TODO: handle Intent to get the Credit Card Credentials
+    }
+
+    public static void setupForegroundDispatch(final Activity activity, NfcAdapter adapter) {
+        final Intent intent = new Intent(activity.getApplicationContext(), activity.getClass());
+        intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+
+        final PendingIntent pendingIntent = PendingIntent.getActivity(activity.getApplicationContext(), 0, intent, 0);
+
+        IntentFilter[] filters = new IntentFilter[1];
+        String[][] techList = new String[][]{};
+
+        // Notice that this is the same filter as in our manifest.
+        filters[0] = new IntentFilter();
+        filters[0].addAction(NfcAdapter.ACTION_TECH_DISCOVERED);
+        filters[0].addCategory(Intent.CATEGORY_DEFAULT);
+        try {
+            filters[0].addDataType("text/plain");
+        } catch (IntentFilter.MalformedMimeTypeException e) {
+            throw new RuntimeException("Check your mime type.");
         }
 
-        startService(new Intent( MainScreen.this,Background.class));
+        adapter.enableForegroundDispatch(activity, pendingIntent, filters, techList);
+    }
+
+    public static void stopForegroundDispatch(final Activity activity, NfcAdapter adapter) {
+        adapter.disableForegroundDispatch(activity);
     }
 
     @Override
