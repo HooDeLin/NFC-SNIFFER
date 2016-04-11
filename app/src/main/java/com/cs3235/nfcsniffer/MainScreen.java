@@ -46,6 +46,7 @@ public class MainScreen extends AppCompatActivity {
 
     @Override
     protected void onNewIntent(Intent intent) {
+        Toast.makeText(this, "Card detected", Toast.LENGTH_LONG).show();
         super.onNewIntent(intent);
     }
 
