@@ -12,6 +12,7 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -19,6 +20,7 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.nfc.NfcAdapter;
+import android.widget.Toast;
 
 
 public class MainScreen extends AppCompatActivity {
@@ -40,74 +42,29 @@ public class MainScreen extends AppCompatActivity {
             }
         });
         nfcAdapter = NfcAdapter.getDefaultAdapter(this);
+    }
 
-        if (nfcAdapter != null && !nfcAdapter.isEnabled()) {
-            //we only sniff if nfc support is present
-
-
-        }
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
     }
 
     @Override
     protected void onResume() {
-        super.onResume();
+        Intent intent = new Intent(this, MainScreen.class);
+        intent.addFlags(Intent.FLAG_RECEIVER_REPLACE_PENDING);
 
-        /**
-         * It's important, that the activity is in the foreground (resumed). Otherwise
-         * an IllegalStateException is thrown.
-         */
-        setupForegroundDispatch(this, nfcAdapter);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, 0);
+        IntentFilter[]intentFilter = new IntentFilter[]{};
+
+        nfcAdapter.enableForegroundDispatch(this, pendingIntent, intentFilter, null);
+        super.onResume();
     }
 
     @Override
     protected void onPause() {
-        /**
-         * Call this before onPause, otherwise an IllegalArgumentException is thrown as well.
-         */
-        stopForegroundDispatch(this, nfcAdapter);
-
+        nfcAdapter.disableForegroundDispatch(this);
         super.onPause();
-    }
-
-    protected void onNewIntent(Intent intent) {
-        /**
-         * This method gets called, when a new Intent gets associated with the current activity instance.
-         * Instead of creating a new activity, onNewIntent will be called. For more information have a look
-         * at the documentation.
-         *
-         * In our case this method gets called, when the user attaches a Tag to the device.
-         */
-        handleIntent(intent);
-    }
-
-    private void handleIntent(Intent intent) {
-        // TODO: handle Intent to get the Credit Card Credentials
-    }
-
-    public static void setupForegroundDispatch(final Activity activity, NfcAdapter adapter) {
-        final Intent intent = new Intent(activity.getApplicationContext(), activity.getClass());
-        intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-
-        final PendingIntent pendingIntent = PendingIntent.getActivity(activity.getApplicationContext(), 0, intent, 0);
-
-        IntentFilter[] filters = new IntentFilter[1];
-        String[][] techList = new String[][]{};
-
-        // Notice that this is the same filter as in our manifest.
-        filters[0] = new IntentFilter();
-        filters[0].addAction(NfcAdapter.ACTION_TECH_DISCOVERED);
-        filters[0].addCategory(Intent.CATEGORY_DEFAULT);
-        try {
-            filters[0].addDataType("text/plain");
-        } catch (IntentFilter.MalformedMimeTypeException e) {
-            throw new RuntimeException("Check your mime type.");
-        }
-
-        adapter.enableForegroundDispatch(activity, pendingIntent, filters, techList);
-    }
-
-    public static void stopForegroundDispatch(final Activity activity, NfcAdapter adapter) {
-        adapter.disableForegroundDispatch(activity);
     }
 
     @Override
