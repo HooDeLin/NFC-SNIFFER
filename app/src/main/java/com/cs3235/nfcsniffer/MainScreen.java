@@ -24,6 +24,8 @@ import android.content.Intent;
 import android.nfc.NfcAdapter;
 import android.widget.Toast;
 
+import java.nio.ByteBuffer;
+
 
 public class MainScreen extends AppCompatActivity {
     public NfcAdapter nfcAdapter;
@@ -62,14 +64,9 @@ public class MainScreen extends AppCompatActivity {
             IsoDep iso = IsoDep.get(tag);
             iso.connect();
             byte[] result = iso.transceive(APDUCommand);
-            char[] hexArray = "0123456789ABCDEF".toCharArray();
-            char[] hexChars = new char[result.length * 2];
-                for ( int j = 0; j < result.length; j++ ) {
-                    int v = result[j] & 0xFF;
-                    hexChars[j * 2] = hexArray[v >>> 4];
-                    hexChars[j * 2 + 1] = hexArray[v & 0x0F];
-                }
-            Log.d("cardBrand", new String(hexChars));
+            String cardBrand = decode(byteToHex(result));
+            Log.d("cardBrand", cardBrand);
+            
             /*
             byte[] readRecord={(byte)0x00,(byte)0xB2,(byte)0x02,(byte)0x0C,(byte)0x00};
             byte[] result2 = iso.transceive(readRecord);
@@ -92,6 +89,31 @@ public class MainScreen extends AppCompatActivity {
         }
         super.onNewIntent(intent);
     }
+
+    public static String byteToHex(byte[] byteArray){
+        char[] hexArray = "0123456789ABCDEF".toCharArray();
+        char[] hexChars = new char[byteArray.length * 2];
+        for ( int j = 0; j < byteArray.length; j++ ) {
+            int v = byteArray[j] & 0xFF;
+            hexChars[j * 2] = hexArray[v >>> 4];
+            hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+        }
+        return new String(hexChars);
+    }
+
+    public static String decode(String hex){
+
+        String str = "";
+        for (int i = 0; i < hex.length();i+=2)
+        {
+            String s = hex.substring(i, (i + 2));
+            int decimal = Integer.parseInt(s, 16);
+            str = str + (char) decimal;
+        }
+        return str;
+
+    }
+
 
     @Override
     protected void onResume() {
