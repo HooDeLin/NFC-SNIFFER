@@ -7,6 +7,8 @@ package com.cs3235.nfcsniffer;
 import android.app.Activity;
 import android.app.PendingIntent;
 import android.content.IntentFilter;
+import android.nfc.Tag;
+import android.nfc.tech.IsoDep;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -47,6 +49,47 @@ public class MainScreen extends AppCompatActivity {
     @Override
     protected void onNewIntent(Intent intent) {
         Toast.makeText(this, "Card detected", Toast.LENGTH_LONG).show();
+        try {
+            byte[] APDUCommand = {
+                    (byte) 0x00, // CLA Class
+                    (byte) 0xA4, // INS Instruction
+                    (byte) 0x04, // P1  Parameter 1
+                    (byte) 0x00, // P2  Parameter 2
+                    (byte) 0x07, // Length
+                    (byte) 0xA0, 0x00, 0x00, 0x00, 0x03, 0x10, 0x10 // AID
+            };
+            Tag tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
+            IsoDep iso = IsoDep.get(tag);
+            iso.connect();
+            byte[] result = iso.transceive(APDUCommand);
+            char[] hexArray = "0123456789ABCDEF".toCharArray();
+            char[] hexChars = new char[result.length * 2];
+                for ( int j = 0; j < result.length; j++ ) {
+                    int v = result[j] & 0xFF;
+                    hexChars[j * 2] = hexArray[v >>> 4];
+                    hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+                }
+            Log.d("cardBrand", new String(hexChars));
+            /*
+            byte[] readRecord={(byte)0x00,(byte)0xB2,(byte)0x02,(byte)0x0C,(byte)0x00};
+            byte[] result2 = iso.transceive(readRecord);
+            char[] hexChars2 = new char[result.length * 2];
+            for ( int j = 0; j < result2.length; j++ ) {
+                int v = result2[j] & 0xFF;
+                hexChars2[j * 2] = hexArray[v >>> 4];
+                hexChars2[j * 2 + 1] = hexArray[v & 0x0F];
+            }*/
+            //Log.d("debug", new String(hexChars2));
+            /*byte[] getProcessingOptions={(byte)0x80,(byte)0xA8,(byte)0x00,(byte)0x00,(byte)0x02,(byte)0x83,(byte)0x00,(byte)0x00};
+            byte[] readRecord={(byte)0x00,(byte)0xB2,(byte)0x02,(byte)0x0C,(byte)0x00};
+            byte[] result1 = iso.transceive(getProcessingOptions);
+            byte[]result2 = iso.transceive(readRecord);
+            Log.d("nfcDebug", new String(result));
+            Log.d("nfcDebug", new String(result1));
+            Log.d("nfcDebug", new String(result2));*/
+        } catch(Exception e) {
+            Log.d("nfcDebugError", e.getMessage());
+        }
         super.onNewIntent(intent);
     }
 
