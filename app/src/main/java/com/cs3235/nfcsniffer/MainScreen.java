@@ -52,38 +52,48 @@ public class MainScreen extends AppCompatActivity {
     protected void onNewIntent(Intent intent) {
         Toast.makeText(this, "Card detected", Toast.LENGTH_LONG).show();
         try {
-            byte[] APDUCommand = {
-                    (byte) 0x00, // CLA Class
-                    (byte) 0xA4, // INS Instruction
-                    (byte) 0x04, // P1  Parameter 1
-                    (byte) 0x00, // P2  Parameter 2
-                    (byte) 0x07, // Length
-                    (byte) 0xA0, 0x00, 0x00, 0x00, 0x03, 0x10, 0x10 // AID
+
+            byte[] selectPSEDirectory = {
+                    (byte)0x00,
+                    (byte)0xA4,
+                    (byte)0x04,
+                    (byte)0x00,
+                    (byte)0x0E,
+                    (byte)0x31,
+                    (byte)0x50,
+                    (byte)0x41,
+                    (byte)0x59,
+                    (byte)0x2E,
+                    (byte)0x53,
+                    (byte)0x59,
+                    (byte)0x53,
+                    (byte)0x2E,
+                    (byte)0x44,
+                    (byte)0x44,
+                    (byte)0x46,
+                    (byte)0x30,
+                    (byte)0x31
             };
             Tag tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
             IsoDep iso = IsoDep.get(tag);
             iso.connect();
-            byte[] result = iso.transceive(APDUCommand);
-            String cardBrand = decode(byteToHex(result));
-            Log.d("cardBrand", cardBrand);
-            
-            /*
-            byte[] readRecord={(byte)0x00,(byte)0xB2,(byte)0x02,(byte)0x0C,(byte)0x00};
-            byte[] result2 = iso.transceive(readRecord);
-            char[] hexChars2 = new char[result.length * 2];
-            for ( int j = 0; j < result2.length; j++ ) {
-                int v = result2[j] & 0xFF;
-                hexChars2[j * 2] = hexArray[v >>> 4];
-                hexChars2[j * 2 + 1] = hexArray[v & 0x0F];
-            }*/
-            //Log.d("debug", new String(hexChars2));
-            /*byte[] getProcessingOptions={(byte)0x80,(byte)0xA8,(byte)0x00,(byte)0x00,(byte)0x02,(byte)0x83,(byte)0x00,(byte)0x00};
-            byte[] readRecord={(byte)0x00,(byte)0xB2,(byte)0x02,(byte)0x0C,(byte)0x00};
-            byte[] result1 = iso.transceive(getProcessingOptions);
-            byte[]result2 = iso.transceive(readRecord);
-            Log.d("nfcDebug", new String(result));
-            Log.d("nfcDebug", new String(result1));
-            Log.d("nfcDebug", new String(result2));*/
+            byte[] selectPSEDirectoryResult = iso.transceive(selectPSEDirectory);
+            String PSEDirectory = decode(byteToHex(selectPSEDirectoryResult));
+            Log.d("PSEDirectoryHex", byteToHex(selectPSEDirectoryResult));
+            Log.d("PSEDirectory", PSEDirectory);
+
+            byte[] read = {
+                    (byte)0x00,
+                    (byte)0xB2,
+                    (byte)0x01,
+                    (byte)0x0C,
+                    (byte)0x00
+            };
+            byte[] readResult = iso.transceive(read);
+            String readResultString = decode(byteToHex(readResult));
+            Log.d("readResultHex", byteToHex(readResult));
+            Log.d("readResult", readResultString);
+
         } catch(Exception e) {
             Log.d("nfcDebugError", e.getMessage());
         }
