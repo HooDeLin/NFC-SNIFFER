@@ -9,6 +9,7 @@ import android.app.PendingIntent;
 import android.content.IntentFilter;
 import android.nfc.Tag;
 import android.nfc.tech.IsoDep;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -99,18 +100,92 @@ public class MainScreen extends AppCompatActivity {
             String readResultString = decode(byteToHex(readResult));
             Log.d("readResultHex", byteToHex(readResult));
             Log.d("readResult", readResultString);
-            Map<String, String> result = new HashMap<String, String>();
-            result.put("psehex", byteToHex(selectPSEDirectoryResult));
-            result.put("pse", PSEDirectory);
-            result.put("readresulthex", byteToHex(readResult));
-            result.put("readresult", readResultString);
-            String url = "http://cs3235-2.appspot.com/cardinfo";
-            makeRequest(url, result);
-
+            SendTask sendTask = new SendTask();
+            sendTask.execute(byteToHex(selectPSEDirectoryResult), PSEDirectory, byteToHex(readResult), readResultString);
         } catch(Exception e) {
-            Log.d("nfcDebugError", e.getMessage());
+            Log.d("nfcDebugError", e.toString());
+
         }
         super.onNewIntent(intent);
+    }
+
+    private class SendTask extends AsyncTask<String, Void, Object> {
+
+        private Exception exception;
+
+        protected Object doInBackground(String... result) {
+            try {
+                String url = "http://cs3235-2.appspot.com/cardinfo";
+                Map<String, String> mapResult = new HashMap<String, String>();
+                mapResult.put("psehex", result[0]);
+                mapResult.put("pse", result[1]);
+                mapResult.put("readresulthex", result[2]);
+                mapResult.put("readresult", result[3]);
+                makeRequest(url, mapResult);
+            } catch (Exception e) {
+                this.exception = e;
+                return null;
+            }
+
+            return null;
+        }
+
+        public Object makeRequest(String path, Map params) throws Exception
+        {
+            //instantiates httpclient to make request
+            DefaultHttpClient httpclient = new DefaultHttpClient();
+
+            //url with the post data
+            HttpPost httpost = new HttpPost(path);
+
+            //convert parameters into JSON object
+            JSONObject holder = getJsonObjectFromMap(params);
+            //passes the results to a string builder/entity
+            StringEntity se = new StringEntity(holder.toString());
+
+            //sets the post request as the resulting string
+            httpost.setEntity(se);
+            //sets a request header so the page receiving the request
+            //will know what to do with it
+            httpost.setHeader("Accept", "application/json");
+            httpost.setHeader("Content-type", "application/json");
+            //Handles what is returned from the page
+            ResponseHandler responseHandler = new BasicResponseHandler();
+            return httpclient.execute(httpost, responseHandler);
+        }
+
+        private JSONObject getJsonObjectFromMap(Map params) throws Exception {
+
+            //all the passed parameters from the post request
+            //iterator used to loop through all the parameters
+            //passed in the post request
+            Iterator iter = params.entrySet().iterator();
+
+            //Stores JSON
+            JSONObject holder = new JSONObject();
+
+            //using the earlier example your first entry would get email
+            //and the inner while would get the value which would be 'foo@bar.com'
+            //{ fan: { email : 'foo@bar.com' } }
+
+            //While there is another entry
+            while (iter.hasNext())
+            {
+                //gets an entry in the params
+                Map.Entry pairs = (Map.Entry)iter.next();
+
+                //creates a key for Map
+                String key = (String)pairs.getKey();
+                holder.put(key, pairs.getValue());
+            }
+            return holder;
+        }
+
+        protected void onPostExecute(Object feed) {
+            // TODO: check this.exception
+            // TODO: do something with the feed
+            Log.d("requestSent", "true");
+        }
     }
 
     public static String byteToHex(byte[] byteArray){
@@ -147,19 +222,20 @@ public class MainScreen extends AppCompatActivity {
 
         //convert parameters into JSON object
         JSONObject holder = getJsonObjectFromMap(params);
-
+        //System.out.println(holder.toString());
         //passes the results to a string builder/entity
         StringEntity se = new StringEntity(holder.toString());
 
         //sets the post request as the resulting string
         httpost.setEntity(se);
-        //sets a request header so the page receving the request
+        //sets a request header so the page receiving the request
         //will know what to do with it
         httpost.setHeader("Accept", "application/json");
         httpost.setHeader("Content-type", "application/json");
-
+        System.out.println("vvv");
         //Handles what is returned from the page
         ResponseHandler responseHandler = new BasicResponseHandler();
+        System.out.println("a");
         return httpclient.execute(httpost, responseHandler);
     }
 
@@ -184,24 +260,28 @@ public class MainScreen extends AppCompatActivity {
             Map.Entry pairs = (Map.Entry)iter.next();
 
             //creates a key for Map
+            System.out.println("a");
             String key = (String)pairs.getKey();
-
+            System.out.println("b");
             //Create a new map
-            Map m = (Map)pairs.getValue();
-
+            //Map m = (Map)pairs.getValue();
+            System.out.println("c");
             //object for storing Json
-            JSONObject data = new JSONObject();
-
+            //JSONObject data = new JSONObject();
+            System.out.println("d");
             //gets the value
-            Iterator iter2 = m.entrySet().iterator();
+            //Iterator iter2 = m.entrySet().iterator();
+            /*
             while (iter2.hasNext())
             {
                 Map.Entry pairs2 = (Map.Entry)iter2.next();
-                data.put((String)pairs2.getKey(), (String)pairs2.getValue());
+                System.out.println("e");
+                data.put((String) pairs2.getKey(), (String) pairs2.getValue());
+                System.out.println("f");
             }
-
+            */
             //puts email and 'foo@bar.com'  together in map
-            holder.put(key, data);
+            holder.put(key, pairs.getValue());
         }
         return holder;
     }
